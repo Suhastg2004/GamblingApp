@@ -1,6 +1,7 @@
 from config.init_db import create_database, create_tables
 from services.gambler_profile_service import GamblerProfileService
 from utils.safe_input_handler import SafeInputHandler
+from utils.user_interaction import GameStatusDisplay, InteractiveMenu, SimpleGameEngine
 from utils.logger import logger
 
 def initialize():
@@ -18,36 +19,13 @@ def initialize():
 def run_app():
     service = GamblerProfileService()
     input_handler = SafeInputHandler()
+    status_display = GameStatusDisplay()
+    menu_ui = InteractiveMenu(input_handler)
+    demo_engine = SimpleGameEngine(service, menu_ui, status_display)
 
     while True:
         try:
-            print("\n===== GAMBLER PROFILE MANAGEMENT =====")
-            print("1. Create Gambler")
-            print("2. Get Gambler Details")
-            print("3. Update Gambler")
-            print("4. Validate Gambler")
-            print("5. Reset Gambler")
-            print("6. Track Current Stake")
-            print("7. Process Bet Outcome")
-            print("8. Deposit Funds")
-            print("9. Withdraw Funds")
-            print("10. Stake Fluctuation Monitor")
-            print("11. Validate Stake Boundaries")
-            print("12. Stake History Report")
-            print("13. Place Single Bet (Probability)")
-            print("14. Place Consecutive Strategy Bets")
-            print("15. Get Betting Session Summary")
-            print("16. Start Game Session")
-            print("17. Continue Game Session")
-            print("18. Pause Game Session")
-            print("19. Resume Game Session")
-            print("20. End Game Session")
-            print("21. Get Game Session")
-            print("22. List Active Game Sessions")
-            print("23. Win/Loss Analysis")
-            print("24. Exit")
-
-            ch = input("Enter choice: ").strip()
+            ch = menu_ui.displayMainMenu()
 
             if ch == "1":
                 name = input("Enter name: ")
@@ -107,8 +85,7 @@ def run_app():
             elif ch == "6":
                 gid = int(input("Enter gambler ID: "))
                 status = service.get_stake_status(gid)
-                print("\n--- Stake Status ---")
-                print(status)
+                status_display.displayCurrentStatus(gid, status)
 
             elif ch == "7":
                 gid = int(input("Enter gambler ID: "))
@@ -159,7 +136,7 @@ def run_app():
 
             elif ch == "13":
                 gid = input_handler.prompt_number("Enter gambler ID: ", "gambler_id", cast_type=int)
-                amount = input_handler.prompt_number("Enter bet amount: ", "bet_amount")
+                amount = menu_ui.promptForBetAmount("Enter bet amount: ")
                 win_probability = input_handler.prompt_number("Enter win probability (0-1): ", "probability")
                 odds_input = input("Enter odds multiplier (blank for auto): ").strip()
                 odds_multiplier = (
@@ -192,8 +169,9 @@ def run_app():
                     odds_type=odds_type,
                     odds_value=odds_value,
                 )
-                print("\n--- Single Bet ---")
-                print(result)
+                status_display.displayGameOutcome(result)
+                updated = service.get_stake_status(gid)
+                status_display.displayCurrentStatus(gid, updated)
 
             elif ch == "14":
                 gid = int(input("Enter gambler ID: "))
@@ -229,8 +207,7 @@ def run_app():
             elif ch == "15":
                 session_id = input("Enter betting session ID: ").strip()
                 summary = service.get_betting_session_summary(session_id)
-                print("\n--- Betting Session Summary ---")
-                print(summary)
+                status_display.displaySessionSummary(summary)
 
             elif ch == "16":
                 gid = int(input("Enter gambler ID: "))
@@ -252,8 +229,7 @@ def run_app():
                     max_duration_seconds,
                     default_win_probability,
                 )
-                print("\n--- Game Session Started ---")
-                print(session)
+                status_display.displaySessionSummary(session)
 
             elif ch == "17":
                 session_id = input("Enter game session ID: ").strip()
@@ -274,20 +250,19 @@ def run_app():
                     odds_multiplier=odds_multiplier,
                 )
                 print("\n--- Game Session Continued ---")
-                print(result)
+                print(result.get("new_games", []))
+                status_display.displaySessionSummary(result.get("session", {}))
 
             elif ch == "18":
                 session_id = input("Enter game session ID: ").strip()
                 reason = input("Enter pause reason (optional): ").strip() or "User requested pause"
                 result = service.pause_game_session(session_id, reason)
-                print("\n--- Game Session Paused ---")
-                print(result)
+                status_display.displaySessionSummary(result)
 
             elif ch == "19":
                 session_id = input("Enter game session ID: ").strip()
                 result = service.resume_game_session(session_id)
-                print("\n--- Game Session Resumed ---")
-                print(result)
+                status_display.displaySessionSummary(result)
 
             elif ch == "20":
                 session_id = input("Enter game session ID: ").strip()
@@ -295,14 +270,14 @@ def run_app():
                     "Enter end reason [MANUAL/TIMEOUT/UPPER_LIMIT_REACHED/LOWER_LIMIT_REACHED/MAX_GAMES_REACHED] (default MANUAL): "
                 ).strip() or "MANUAL"
                 result = service.end_game_session(session_id, reason)
-                print("\n--- Game Session Ended ---")
-                print(result)
+                status_display.displaySessionSummary(result)
 
             elif ch == "21":
                 session_id = input("Enter game session ID: ").strip()
                 result = service.get_game_session(session_id)
-                print("\n--- Game Session Details ---")
-                print(result)
+                status_display.displaySessionSummary(result)
+                print("\n--- Game-by-Game History ---")
+                print(result.get("games", []))
 
             elif ch == "22":
                 result = service.list_active_game_sessions()
@@ -326,6 +301,9 @@ def run_app():
             elif ch == "24":
                 print("Exiting application...")
                 break
+
+            elif ch == "25":
+                demo_engine.run_demo()
 
             else:
                 print("Invalid choice")
