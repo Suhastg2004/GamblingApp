@@ -1,5 +1,7 @@
 from config.db import get_connection
 from services.betting_service import BettingService
+from services.game_session_manager import GameSessionManager
+from models.game_session import SessionEndReason
 from models.stake_transaction import TransactionType
 from services.stake_management_service import StakeManagementService
 from utils.validator import validate_stake, validate_thresholds, validate_bets
@@ -9,6 +11,7 @@ class GamblerProfileService:
     def __init__(self):
         self.stake_service = StakeManagementService()
         self.betting_service = BettingService(self.stake_service)
+        self.game_session_manager = GameSessionManager(self.betting_service, self.stake_service)
     
     def create_gambler(self, name, initial_stake, win_th, loss_th, min_bet, max_bet, strategy, session_limit):
         try:
@@ -206,3 +209,59 @@ class GamblerProfileService:
 
     def get_betting_session_summary(self, session_id):
         return self.betting_service.get_session_summary(session_id)
+
+    def start_game_session(
+        self,
+        gid,
+        lower_limit,
+        upper_limit,
+        min_bet,
+        max_bet,
+        max_games,
+        max_duration_seconds,
+        default_win_probability,
+    ):
+        return self.game_session_manager.start_new_session(
+            gid,
+            lower_limit,
+            upper_limit,
+            min_bet,
+            max_bet,
+            max_games,
+            max_duration_seconds,
+            default_win_probability,
+        )
+
+    def continue_game_session(self, session_id, rounds, bet_amount=None, win_probability=None, odds_multiplier=None):
+        return self.game_session_manager.continue_session(
+            session_id,
+            rounds,
+            bet_amount=bet_amount,
+            win_probability=win_probability,
+            odds_multiplier=odds_multiplier,
+        )
+
+    def pause_game_session(self, session_id, reason="User requested pause"):
+        return self.game_session_manager.pause_session(session_id, reason)
+
+    def resume_game_session(self, session_id):
+        return self.game_session_manager.resume_session(session_id)
+
+    def end_game_session(self, session_id, reason="MANUAL"):
+        reason_map = {
+            "MANUAL": SessionEndReason.MANUAL,
+            "TIMEOUT": SessionEndReason.TIMEOUT,
+            "UPPER_LIMIT_REACHED": SessionEndReason.UPPER_LIMIT_REACHED,
+            "LOWER_LIMIT_REACHED": SessionEndReason.LOWER_LIMIT_REACHED,
+            "MAX_GAMES_REACHED": SessionEndReason.MAX_GAMES_REACHED,
+        }
+        selected = reason_map.get(reason.upper())
+        if not selected:
+            raise ValueError("Invalid end reason")
+        return self.game_session_manager.end_session(session_id, selected)
+
+    def get_game_session(self, session_id):
+        return self.game_session_manager.get_session(session_id)
+
+    def list_active_game_sessions(self):
+        return self.game_session_manager.list_active_sessions()

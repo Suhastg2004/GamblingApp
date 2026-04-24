@@ -11,3 +11,5 @@
 2026-04-24 07:13:25,729 - WARNING - Invalid input: Bet amount is below configured minimum
 2026-04-24 07:14:08,739 - INFO - Bet processed for gambler: 1
 2026-04-24 07:14:08,780 - INFO - Bet placed for gambler 1: ba952f63-1dca-47fd-8c64-422cdabe1e6b
+2026-04-24 07:20:49,370 - INFO - Database initialized successfully
+2026-04-24 07:21:27,052 - WARNING - Invalid input: Current stake must be between lower and upper limits

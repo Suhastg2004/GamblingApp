@@ -35,7 +35,14 @@ def run_app():
             print("13. Place Single Bet (Probability)")
             print("14. Place Consecutive Strategy Bets")
             print("15. Get Betting Session Summary")
-            print("16. Exit")
+            print("16. Start Game Session")
+            print("17. Continue Game Session")
+            print("18. Pause Game Session")
+            print("19. Resume Game Session")
+            print("20. End Game Session")
+            print("21. Get Game Session")
+            print("22. List Active Game Sessions")
+            print("23. Exit")
 
             ch = input("Enter choice: ").strip()
 
@@ -195,6 +202,83 @@ def run_app():
                 print(summary)
 
             elif ch == "16":
+                gid = int(input("Enter gambler ID: "))
+                lower_limit = float(input("Enter lower stake limit: "))
+                upper_limit = float(input("Enter upper stake limit: "))
+                min_bet = float(input("Enter session min bet: "))
+                max_bet = float(input("Enter session max bet: "))
+                max_games = int(input("Enter max games in session: "))
+                max_duration_seconds = int(input("Enter max duration in seconds: "))
+                default_win_probability = float(input("Enter default win probability (0-1): "))
+
+                session = service.start_game_session(
+                    gid,
+                    lower_limit,
+                    upper_limit,
+                    min_bet,
+                    max_bet,
+                    max_games,
+                    max_duration_seconds,
+                    default_win_probability,
+                )
+                print("\n--- Game Session Started ---")
+                print(session)
+
+            elif ch == "17":
+                session_id = input("Enter game session ID: ").strip()
+                rounds = int(input("Enter number of rounds to play: "))
+                bet_amount_input = input("Enter fixed bet amount (blank for session min bet): ").strip()
+                win_prob_input = input("Enter win probability (blank for session default): ").strip()
+                odds_input = input("Enter odds multiplier (blank for auto): ").strip()
+
+                bet_amount = float(bet_amount_input) if bet_amount_input else None
+                win_probability = float(win_prob_input) if win_prob_input else None
+                odds_multiplier = float(odds_input) if odds_input else None
+
+                result = service.continue_game_session(
+                    session_id,
+                    rounds,
+                    bet_amount=bet_amount,
+                    win_probability=win_probability,
+                    odds_multiplier=odds_multiplier,
+                )
+                print("\n--- Game Session Continued ---")
+                print(result)
+
+            elif ch == "18":
+                session_id = input("Enter game session ID: ").strip()
+                reason = input("Enter pause reason (optional): ").strip() or "User requested pause"
+                result = service.pause_game_session(session_id, reason)
+                print("\n--- Game Session Paused ---")
+                print(result)
+
+            elif ch == "19":
+                session_id = input("Enter game session ID: ").strip()
+                result = service.resume_game_session(session_id)
+                print("\n--- Game Session Resumed ---")
+                print(result)
+
+            elif ch == "20":
+                session_id = input("Enter game session ID: ").strip()
+                reason = input(
+                    "Enter end reason [MANUAL/TIMEOUT/UPPER_LIMIT_REACHED/LOWER_LIMIT_REACHED/MAX_GAMES_REACHED] (default MANUAL): "
+                ).strip() or "MANUAL"
+                result = service.end_game_session(session_id, reason)
+                print("\n--- Game Session Ended ---")
+                print(result)
+
+            elif ch == "21":
+                session_id = input("Enter game session ID: ").strip()
+                result = service.get_game_session(session_id)
+                print("\n--- Game Session Details ---")
+                print(result)
+
+            elif ch == "22":
+                result = service.list_active_game_sessions()
+                print("\n--- Active Game Sessions ---")
+                print(result)
+
+            elif ch == "23":
                 print("Exiting application...")
                 break
 
@@ -203,7 +287,7 @@ def run_app():
 
         except ValueError as ve:
             logger.warning(f"Invalid input: {ve}")
-            print(f"Invalid input: {ve}")
+            print("Invalid input. Please enter correct values.")
 
         except Exception as e:
             logger.error(f"Application error: {e}")
