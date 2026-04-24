@@ -8,13 +8,20 @@ from models.win_loss_models import OutcomeStrategyType
 from services.stake_management_service import StakeManagementService
 from services.win_loss_calculator import WinLossCalculator, build_odds_configuration
 from utils.logger import logger
-from utils.validator import validate_positive_amount, validate_probability
+from utils.validator import (
+    InputValidator,
+    ValidationErrorType,
+    ValidationException,
+    validate_positive_amount,
+    validate_probability,
+)
 
 
 class BettingService:
     def __init__(self, stake_service=None):
         self.stake_service = stake_service or StakeManagementService()
         self.win_loss_calculator = WinLossCalculator()
+        self.input_validator = InputValidator()
 
     def place_bet(
         self,
@@ -80,7 +87,15 @@ class BettingService:
 
     def determine_bet_outcome(self, win_probability, outcome_strategy="RANDOM", house_edge=0.0):
         validate_probability(win_probability)
-        strategy = OutcomeStrategyType[outcome_strategy.upper()]
+        try:
+            strategy = OutcomeStrategyType[outcome_strategy.upper()]
+        except KeyError:
+            raise ValidationException(
+                "Outcome strategy must be RANDOM or WEIGHTED",
+                error_type=ValidationErrorType.RANGE_ERROR,
+                field="outcome_strategy",
+                attempted_value=outcome_strategy,
+            )
         return self.win_loss_calculator.determine_outcome(win_probability, strategy, house_edge=house_edge)
 
     def place_bet_with_strategy(
@@ -256,12 +271,13 @@ class BettingService:
 
     @staticmethod
     def _validate_bet_amount(amount, context):
-        if amount < context["min_bet"]:
-            raise ValueError("Bet amount is below configured minimum")
-        if amount > context["max_bet"]:
-            raise ValueError("Bet amount exceeds configured maximum")
-        if amount > context["current_stake"]:
-            raise ValueError("Bet amount cannot exceed current stake")
+        validator = InputValidator()
+        validator.validate_bet_amount(
+            amount,
+            current_stake=context["current_stake"],
+            min_bet=context["min_bet"],
+            max_bet=context["max_bet"],
+        )
 
     @staticmethod
     def _default_odds_multiplier(win_probability):

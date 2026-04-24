@@ -1,5 +1,6 @@
 from config.init_db import create_database, create_tables
 from services.gambler_profile_service import GamblerProfileService
+from utils.safe_input_handler import SafeInputHandler
 from utils.logger import logger
 
 def initialize():
@@ -16,6 +17,7 @@ def initialize():
 
 def run_app():
     service = GamblerProfileService()
+    input_handler = SafeInputHandler()
 
     while True:
         try:
@@ -49,13 +51,13 @@ def run_app():
 
             if ch == "1":
                 name = input("Enter name: ")
-                initial_stake = float(input("Enter initial stake: "))
-                win_th = float(input("Enter win threshold: "))
-                loss_th = float(input("Enter loss threshold: "))
-                min_bet = float(input("Enter min bet: "))
-                max_bet = float(input("Enter max bet: "))
+                initial_stake = input_handler.prompt_number("Enter initial stake: ", "initial_stake")
+                win_th = input_handler.prompt_number("Enter win threshold: ", "win_threshold")
+                loss_th = input_handler.prompt_number("Enter loss threshold: ", "loss_threshold")
+                min_bet = input_handler.prompt_number("Enter min bet: ", "min_bet")
+                max_bet = input_handler.prompt_number("Enter max bet: ", "max_bet")
                 strategy = input("Enter strategy: ")
-                session_limit = int(input("Enter session limit: "))
+                session_limit = input_handler.prompt_number("Enter session limit: ", "session_limit", cast_type=int)
 
                 gid = service.create_gambler(
                     name, initial_stake, win_th, loss_th,
@@ -156,17 +158,29 @@ def run_app():
                 print(report)
 
             elif ch == "13":
-                gid = int(input("Enter gambler ID: "))
-                amount = float(input("Enter bet amount: "))
-                win_probability = float(input("Enter win probability (0-1): "))
+                gid = input_handler.prompt_number("Enter gambler ID: ", "gambler_id", cast_type=int)
+                amount = input_handler.prompt_number("Enter bet amount: ", "bet_amount")
+                win_probability = input_handler.prompt_number("Enter win probability (0-1): ", "probability")
                 odds_input = input("Enter odds multiplier (blank for auto): ").strip()
-                odds_multiplier = float(odds_input) if odds_input else None
+                odds_multiplier = (
+                    input_handler.validator.parse_and_validate_numeric(odds_input, "odds_multiplier")
+                    if odds_input
+                    else None
+                )
                 outcome_strategy = input("Outcome strategy [RANDOM/WEIGHTED] (default RANDOM): ").strip() or "RANDOM"
                 house_edge_input = input("House edge for WEIGHTED (default 0.0): ").strip()
-                house_edge = float(house_edge_input) if house_edge_input else 0.0
+                house_edge = (
+                    input_handler.validator.parse_and_validate_numeric(house_edge_input, "house_edge")
+                    if house_edge_input
+                    else 0.0
+                )
                 odds_type = input("Odds type [FIXED/PROBABILITY_BASED/AMERICAN/DECIMAL] (blank for auto): ").strip() or None
                 odds_value_input = input("Odds value for selected type (blank if not needed): ").strip()
-                odds_value = float(odds_value_input) if odds_value_input else None
+                odds_value = (
+                    input_handler.validator.parse_and_validate_numeric(odds_value_input, "odds_value")
+                    if odds_value_input
+                    else None
+                )
 
                 result = service.place_single_bet(
                     gid,
@@ -296,9 +310,15 @@ def run_app():
                 print(result)
 
             elif ch == "23":
-                gid = int(input("Enter gambler ID: "))
+                gid = input_handler.prompt_number("Enter gambler ID: ", "gambler_id", cast_type=int)
                 session_id = input("Enter betting session ID (optional): ").strip() or None
-                limit = int(input("Enter analysis bet limit (default 500): ") or "500")
+                limit = input_handler.prompt_number(
+                    "Enter analysis bet limit (default 500): ",
+                    "analysis_limit",
+                    cast_type=int,
+                    allow_blank=True,
+                    default=500,
+                )
                 analysis = service.get_win_loss_analysis(gid, session_id=session_id, limit=limit)
                 print("\n--- Win/Loss Analysis ---")
                 print(analysis)
@@ -312,7 +332,7 @@ def run_app():
 
         except ValueError as ve:
             logger.warning(f"Invalid input: {ve}")
-            print("Invalid input. Please enter correct values.")
+            print(f"Invalid input: {ve}")
 
         except Exception as e:
             logger.error(f"Application error: {e}")
