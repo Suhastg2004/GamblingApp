@@ -25,7 +25,14 @@ def run_app():
             print("3. Update Gambler")
             print("4. Validate Gambler")
             print("5. Reset Gambler")
-            print("6. Exit")
+            print("6. Track Current Stake")
+            print("7. Process Bet Outcome")
+            print("8. Deposit Funds")
+            print("9. Withdraw Funds")
+            print("10. Stake Fluctuation Monitor")
+            print("11. Validate Stake Boundaries")
+            print("12. Stake History Report")
+            print("13. Exit")
 
             ch = input("Enter choice: ").strip()
 
@@ -85,6 +92,59 @@ def run_app():
                 print("Gambler reset successfully")
 
             elif ch == "6":
+                gid = int(input("Enter gambler ID: "))
+                status = service.get_stake_status(gid)
+                print("\n--- Stake Status ---")
+                print(status)
+
+            elif ch == "7":
+                gid = int(input("Enter gambler ID: "))
+                amount = float(input("Enter bet amount: "))
+                is_win_input = input("Did gambler win? (y/n): ").strip().lower()
+                is_win = is_win_input == "y"
+                payout_multiplier = float(input("Enter payout multiplier (default 2.0): ") or "2.0")
+                bet_id = input("Enter bet id (optional): ").strip() or None
+                result = service.process_bet(gid, amount, is_win, payout_multiplier, bet_id)
+                print("\n--- Bet Result ---")
+                print(result)
+
+            elif ch == "8":
+                gid = int(input("Enter gambler ID: "))
+                amount = float(input("Enter deposit amount: "))
+                note = input("Enter note (optional): ").strip() or None
+                result = service.deposit(gid, amount, note)
+                print("\n--- Deposit Result ---")
+                print(result)
+
+            elif ch == "9":
+                gid = int(input("Enter gambler ID: "))
+                amount = float(input("Enter withdrawal amount: "))
+                note = input("Enter note (optional): ").strip() or None
+                result = service.withdraw(gid, amount, note)
+                print("\n--- Withdrawal Result ---")
+                print(result)
+
+            elif ch == "10":
+                gid = int(input("Enter gambler ID: "))
+                monitor = service.get_stake_monitor(gid)
+                print("\n--- Stake Monitor ---")
+                print(monitor)
+
+            elif ch == "11":
+                gid = int(input("Enter gambler ID: "))
+                result = service.validate_stake_boundaries(gid)
+                print("\n--- Boundary Validation ---")
+                print(result)
+
+            elif ch == "12":
+                gid = int(input("Enter gambler ID: "))
+                tx_type = input("Filter by transaction type (optional): ").strip() or None
+                limit = int(input("Enter report row limit (default 200): ") or "200")
+                report = service.get_stake_history_report(gid, tx_type, limit)
+                print("\n--- Stake History Report ---")
+                print(report)
+
+            elif ch == "13":
                 print("Exiting application...")
                 break
 
@@ -100,5 +160,5 @@ def run_app():
             print("Something went wrong. Check logs.")
 
 if __name__ == "__main__":
-    initialize()   # ensures DB + tables exist
-    run_app()      # runs UC1
+    initialize()  # ensures DB + tables exist
+    run_app()  # runs UC1 + UC2

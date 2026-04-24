@@ -1,8 +1,12 @@
 from config.db import get_connection
+from models.stake_transaction import TransactionType
+from services.stake_management_service import StakeManagementService
 from utils.validator import validate_stake, validate_thresholds, validate_bets
 from utils.logger import logger
 
 class GamblerProfileService:
+    def __init__(self):
+        self.stake_service = StakeManagementService()
     
     def create_gambler(self, name, initial_stake, win_th, loss_th, min_bet, max_bet, strategy, session_limit):
         try:
@@ -29,6 +33,12 @@ class GamblerProfileService:
             INSERT INTO gambler_statistics (gambler_id, total_bets, wins, losses, net_profit)
             VALUES (%s, 0, 0, 0, 0)
             """, (gid,))
+
+            cursor.execute("""
+            INSERT INTO stake_transactions
+            (gambler_id, transaction_type, amount, balance_before, balance_after, note)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """, (gid, TransactionType.INITIAL_STAKE.value, initial_stake, 0.0, initial_stake, "Stake initialized"))
 
             conn.commit()
             conn.close()
@@ -116,16 +126,13 @@ class GamblerProfileService:
     def reset_gambler(self, gid):
         try:
             conn = get_connection()
-            cursor = conn.cursor()
+            cursor = conn.cursor(dictionary=True)
 
             cursor.execute("SELECT initial_stake FROM gambler_profile WHERE id=%s", (gid,))
-            i = cursor.fetchone()[0]
-
-            cursor.execute("""
-            UPDATE gambler_profile 
-            SET current_stake=%s 
-            WHERE id=%s
-            """, (i, gid))
+            row = cursor.fetchone()
+            if not row:
+                raise ValueError("Gambler not found")
+            i = row["initial_stake"]
 
             cursor.execute("""
             UPDATE gambler_statistics 
@@ -136,8 +143,34 @@ class GamblerProfileService:
             conn.commit()
             conn.close()
 
+            self.stake_service.reset_stake(gid, i)
+
             logger.info(f"Gambler reset: {gid}")
 
         except Exception as e:
             logger.error(f"Reset failed: {e}")
             raise
+
+    def get_stake_status(self, gid):
+        return self.stake_service.track_current_stake(gid)
+
+    def process_bet(self, gid, bet_amount, is_win, payout_multiplier=2.0, bet_id=None):
+        return self.stake_service.process_bet_outcome(gid, bet_amount, is_win, payout_multiplier, bet_id)
+
+    def deposit(self, gid, amount, note=None):
+        return self.stake_service.apply_funds_change(gid, amount, TransactionType.DEPOSIT, note)
+
+    def withdraw(self, gid, amount, note=None):
+        return self.stake_service.apply_funds_change(gid, amount, TransactionType.WITHDRAWAL, note)
+
+    def adjust_stake(self, gid, amount_delta, note=None):
+        return self.stake_service.apply_funds_change(gid, amount_delta, TransactionType.ADJUSTMENT, note)
+
+    def get_stake_monitor(self, gid):
+        return self.stake_service.monitor_stake_fluctuations(gid)
+
+    def validate_stake_boundaries(self, gid):
+        return self.stake_service.validate_stake_boundaries(gid)
+
+    def get_stake_history_report(self, gid, transaction_type=None, limit=200):
+        return self.stake_service.generate_stake_history_report(gid, transaction_type, limit)

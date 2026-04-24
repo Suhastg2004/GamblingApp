@@ -57,5 +57,36 @@ def create_tables():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS stake_transactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        gambler_id INT NOT NULL,
+        transaction_type VARCHAR(30) NOT NULL,
+        amount DOUBLE NOT NULL,
+        balance_before DOUBLE NOT NULL,
+        balance_after DOUBLE NOT NULL,
+        bet_id VARCHAR(64),
+        note VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (gambler_id) REFERENCES gambler_profile(id)
+    )
+    """)
+
+    cursor.execute(
+        "SHOW INDEX FROM stake_transactions WHERE Key_name='idx_stake_transactions_gambler_id'"
+    )
+    if not cursor.fetchone():
+        cursor.execute(
+            "CREATE INDEX idx_stake_transactions_gambler_id ON stake_transactions(gambler_id)"
+        )
+
+    cursor.execute(
+        "SHOW INDEX FROM stake_transactions WHERE Key_name='idx_stake_transactions_created_at'"
+    )
+    if not cursor.fetchone():
+        cursor.execute(
+            "CREATE INDEX idx_stake_transactions_created_at ON stake_transactions(created_at)"
+        )
+
     conn.commit()
-    conn.close()
+    conn.close()    
