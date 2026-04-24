@@ -1,4 +1,5 @@
 from config.db import get_connection
+from services.betting_service import BettingService
 from models.stake_transaction import TransactionType
 from services.stake_management_service import StakeManagementService
 from utils.validator import validate_stake, validate_thresholds, validate_bets
@@ -7,6 +8,7 @@ from utils.logger import logger
 class GamblerProfileService:
     def __init__(self):
         self.stake_service = StakeManagementService()
+        self.betting_service = BettingService(self.stake_service)
     
     def create_gambler(self, name, initial_stake, win_th, loss_th, min_bet, max_bet, strategy, session_limit):
         try:
@@ -174,3 +176,33 @@ class GamblerProfileService:
 
     def get_stake_history_report(self, gid, transaction_type=None, limit=200):
         return self.stake_service.generate_stake_history_report(gid, transaction_type, limit)
+
+    def place_single_bet(self, gid, amount, win_probability, odds_multiplier=None):
+        return self.betting_service.place_bet(gid, amount, win_probability, odds_multiplier)
+
+    def place_strategy_bets(
+        self,
+        gid,
+        strategy_name,
+        win_probability,
+        rounds,
+        base_bet,
+        odds_multiplier=None,
+        percentage=0.05,
+        step=1.0,
+        stop_on_boundary=True,
+    ):
+        return self.betting_service.place_consecutive_bets(
+            gambler_id=gid,
+            strategy_name=strategy_name,
+            win_probability=win_probability,
+            rounds=rounds,
+            base_bet=base_bet,
+            odds_multiplier=odds_multiplier,
+            percentage=percentage,
+            step=step,
+            stop_on_boundary=stop_on_boundary,
+        )
+
+    def get_betting_session_summary(self, session_id):
+        return self.betting_service.get_session_summary(session_id)

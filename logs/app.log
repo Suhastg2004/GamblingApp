@@ -1,3 +1,13 @@
 2026-04-21 10:12:55,809 - INFO - Database initialized successfully
 2026-04-21 10:14:18,185 - INFO - Gambler created: 1
 2026-04-21 10:14:23,137 - INFO - Gambler retrieved: 1
+2026-04-24 06:57:22,749 - INFO - Database initialized successfully
+2026-04-24 06:57:56,164 - INFO - Gambler created: 2
+2026-04-24 06:58:30,546 - INFO - Gambler retrieved: 2
+2026-04-24 06:59:59,058 - INFO - Funds updated for gambler: 1
+2026-04-24 07:10:30,079 - INFO - Database initialized successfully
+2026-04-24 07:13:00,329 - WARNING - Invalid input: Bet amount is below configured minimum
+2026-04-24 07:13:15,248 - WARNING - Invalid input: could not convert string to float: ''
+2026-04-24 07:13:25,729 - WARNING - Invalid input: Bet amount is below configured minimum
+2026-04-24 07:14:08,739 - INFO - Bet processed for gambler: 1
+2026-04-24 07:14:08,780 - INFO - Bet placed for gambler 1: ba952f63-1dca-47fd-8c64-422cdabe1e6b

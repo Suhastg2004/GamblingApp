@@ -28,3 +28,10 @@ def validate_balance_transition(balance_before, amount_delta):
     if balance_after < 0:
         raise ValueError("Stake cannot become negative")
     return balance_after
+
+
+def validate_probability(value):
+    if value is None:
+        raise ValueError("Probability is required")
+    if not (0 <= value <= 1):
+        raise ValueError("Probability must be between 0 and 1")

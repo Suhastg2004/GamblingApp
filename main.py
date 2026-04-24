@@ -32,7 +32,10 @@ def run_app():
             print("10. Stake Fluctuation Monitor")
             print("11. Validate Stake Boundaries")
             print("12. Stake History Report")
-            print("13. Exit")
+            print("13. Place Single Bet (Probability)")
+            print("14. Place Consecutive Strategy Bets")
+            print("15. Get Betting Session Summary")
+            print("16. Exit")
 
             ch = input("Enter choice: ").strip()
 
@@ -145,6 +148,53 @@ def run_app():
                 print(report)
 
             elif ch == "13":
+                gid = int(input("Enter gambler ID: "))
+                amount = float(input("Enter bet amount: "))
+                win_probability = float(input("Enter win probability (0-1): "))
+                odds_input = input("Enter odds multiplier (blank for auto): ").strip()
+                odds_multiplier = float(odds_input) if odds_input else None
+                result = service.place_single_bet(gid, amount, win_probability, odds_multiplier)
+                print("\n--- Single Bet ---")
+                print(result)
+
+            elif ch == "14":
+                gid = int(input("Enter gambler ID: "))
+                strategy_name = input(
+                    "Enter strategy [fixed, percentage, martingale, reverse_martingale, fibonacci, dalembert]: "
+                ).strip()
+                win_probability = float(input("Enter win probability (0-1): "))
+                rounds = int(input("Enter number of consecutive bets: "))
+                base_bet = float(input("Enter base bet amount: "))
+                odds_input = input("Enter odds multiplier (blank for auto): ").strip()
+                odds_multiplier = float(odds_input) if odds_input else None
+                pct_input = input("Enter percentage for percentage strategy (default 0.05): ").strip()
+                percentage = float(pct_input) if pct_input else 0.05
+                step_input = input("Enter step for dalembert strategy (default 1.0): ").strip()
+                step = float(step_input) if step_input else 1.0
+                stop_input = input("Stop on boundary breach? (y/n, default y): ").strip().lower()
+                stop_on_boundary = stop_input != "n"
+
+                result = service.place_strategy_bets(
+                    gid,
+                    strategy_name,
+                    win_probability,
+                    rounds,
+                    base_bet,
+                    odds_multiplier=odds_multiplier,
+                    percentage=percentage,
+                    step=step,
+                    stop_on_boundary=stop_on_boundary,
+                )
+                print("\n--- Consecutive Strategy Bets ---")
+                print(result)
+
+            elif ch == "15":
+                session_id = input("Enter betting session ID: ").strip()
+                summary = service.get_betting_session_summary(session_id)
+                print("\n--- Betting Session Summary ---")
+                print(summary)
+
+            elif ch == "16":
                 print("Exiting application...")
                 break
 
@@ -153,7 +203,7 @@ def run_app():
 
         except ValueError as ve:
             logger.warning(f"Invalid input: {ve}")
-            print("Invalid input. Please enter correct values.")
+            print(f"Invalid input: {ve}")
 
         except Exception as e:
             logger.error(f"Application error: {e}")
