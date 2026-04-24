@@ -42,7 +42,8 @@ def run_app():
             print("20. End Game Session")
             print("21. Get Game Session")
             print("22. List Active Game Sessions")
-            print("23. Exit")
+            print("23. Win/Loss Analysis")
+            print("24. Exit")
 
             ch = input("Enter choice: ").strip()
 
@@ -160,7 +161,23 @@ def run_app():
                 win_probability = float(input("Enter win probability (0-1): "))
                 odds_input = input("Enter odds multiplier (blank for auto): ").strip()
                 odds_multiplier = float(odds_input) if odds_input else None
-                result = service.place_single_bet(gid, amount, win_probability, odds_multiplier)
+                outcome_strategy = input("Outcome strategy [RANDOM/WEIGHTED] (default RANDOM): ").strip() or "RANDOM"
+                house_edge_input = input("House edge for WEIGHTED (default 0.0): ").strip()
+                house_edge = float(house_edge_input) if house_edge_input else 0.0
+                odds_type = input("Odds type [FIXED/PROBABILITY_BASED/AMERICAN/DECIMAL] (blank for auto): ").strip() or None
+                odds_value_input = input("Odds value for selected type (blank if not needed): ").strip()
+                odds_value = float(odds_value_input) if odds_value_input else None
+
+                result = service.place_single_bet(
+                    gid,
+                    amount,
+                    win_probability,
+                    odds_multiplier,
+                    outcome_strategy=outcome_strategy,
+                    house_edge=house_edge,
+                    odds_type=odds_type,
+                    odds_value=odds_value,
+                )
                 print("\n--- Single Bet ---")
                 print(result)
 
@@ -279,6 +296,14 @@ def run_app():
                 print(result)
 
             elif ch == "23":
+                gid = int(input("Enter gambler ID: "))
+                session_id = input("Enter betting session ID (optional): ").strip() or None
+                limit = int(input("Enter analysis bet limit (default 500): ") or "500")
+                analysis = service.get_win_loss_analysis(gid, session_id=session_id, limit=limit)
+                print("\n--- Win/Loss Analysis ---")
+                print(analysis)
+
+            elif ch == "24":
                 print("Exiting application...")
                 break
 

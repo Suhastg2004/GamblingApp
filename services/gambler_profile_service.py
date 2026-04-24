@@ -180,8 +180,27 @@ class GamblerProfileService:
     def get_stake_history_report(self, gid, transaction_type=None, limit=200):
         return self.stake_service.generate_stake_history_report(gid, transaction_type, limit)
 
-    def place_single_bet(self, gid, amount, win_probability, odds_multiplier=None):
-        return self.betting_service.place_bet(gid, amount, win_probability, odds_multiplier)
+    def place_single_bet(
+        self,
+        gid,
+        amount,
+        win_probability,
+        odds_multiplier=None,
+        outcome_strategy="RANDOM",
+        house_edge=0.0,
+        odds_type=None,
+        odds_value=None,
+    ):
+        return self.betting_service.place_bet(
+            gid,
+            amount,
+            win_probability,
+            odds_multiplier=odds_multiplier,
+            outcome_strategy=outcome_strategy,
+            house_edge=house_edge,
+            odds_type=odds_type,
+            odds_value=odds_value,
+        )
 
     def place_strategy_bets(
         self,
@@ -209,6 +228,9 @@ class GamblerProfileService:
 
     def get_betting_session_summary(self, session_id):
         return self.betting_service.get_session_summary(session_id)
+
+    def get_win_loss_analysis(self, gid, session_id=None, limit=500):
+        return self.betting_service.get_win_loss_analysis(gid, session_id=session_id, limit=limit)
 
     def start_game_session(
         self,

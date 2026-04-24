@@ -1,11 +1,12 @@
-import random
 import uuid
 
 from config.db import get_connection
 from models.bet import Bet
 from models.betting_session import BettingSession
 from models.betting_strategies import build_strategy
+from models.win_loss_models import OutcomeStrategyType
 from services.stake_management_service import StakeManagementService
+from services.win_loss_calculator import WinLossCalculator, build_odds_configuration
 from utils.logger import logger
 from utils.validator import validate_positive_amount, validate_probability
 
@@ -13,25 +14,39 @@ from utils.validator import validate_positive_amount, validate_probability
 class BettingService:
     def __init__(self, stake_service=None):
         self.stake_service = stake_service or StakeManagementService()
+        self.win_loss_calculator = WinLossCalculator()
 
-    def place_bet(self, gambler_id, amount, win_probability, odds_multiplier=None, strategy_name=None, session_id=None):
+    def place_bet(
+        self,
+        gambler_id,
+        amount,
+        win_probability,
+        odds_multiplier=None,
+        strategy_name=None,
+        session_id=None,
+        outcome_strategy="RANDOM",
+        house_edge=0.0,
+        odds_type=None,
+        odds_value=None,
+    ):
         validate_positive_amount(amount, "amount")
         validate_probability(win_probability)
 
         context = self._get_bet_context(gambler_id)
         self._validate_bet_amount(amount, context)
 
-        odds_multiplier = odds_multiplier or self._default_odds_multiplier(win_probability)
-        validate_positive_amount(odds_multiplier, "odds_multiplier")
+        odds_config = build_odds_configuration(odds_type, odds_value, odds_multiplier)
+        _, computed_multiplier = self.win_loss_calculator.calculate_winnings(amount, odds_config, win_probability)
+        validate_positive_amount(computed_multiplier, "odds_multiplier")
 
-        is_win = self.determine_bet_outcome(win_probability)
+        is_win = self.determine_bet_outcome(win_probability, outcome_strategy=outcome_strategy, house_edge=house_edge)
         bet_id = str(uuid.uuid4())
 
         settlement = self.stake_service.process_bet_outcome(
             gambler_id,
             amount,
             is_win,
-            odds_multiplier,
+            computed_multiplier,
             bet_id,
         )
 
@@ -40,7 +55,7 @@ class BettingService:
             gambler_id=gambler_id,
             amount=amount,
             win_probability=win_probability,
-            odds_multiplier=odds_multiplier,
+            odds_multiplier=computed_multiplier,
             stake_before=settlement["balance_before"],
             stake_after=settlement["balance_after"],
             is_win=is_win,
@@ -54,15 +69,19 @@ class BettingService:
         if session_id:
             self._update_session_totals(session_id, bet)
 
+        analysis = self.win_loss_calculator.analyze_history(gambler_id, session_id=session_id, limit=500)
+
         logger.info(f"Bet placed for gambler {gambler_id}: {bet.bet_id}")
         return {
             "bet": bet.to_dict(),
             "settlement": settlement,
+            "win_loss": analysis.to_dict(),
         }
 
-    def determine_bet_outcome(self, win_probability):
+    def determine_bet_outcome(self, win_probability, outcome_strategy="RANDOM", house_edge=0.0):
         validate_probability(win_probability)
-        return random.random() <= win_probability
+        strategy = OutcomeStrategyType[outcome_strategy.upper()]
+        return self.win_loss_calculator.determine_outcome(win_probability, strategy, house_edge=house_edge)
 
     def place_bet_with_strategy(
         self,
@@ -249,6 +268,9 @@ class BettingService:
         if win_probability == 0:
             return 2.0
         return max(1.01, round(1.0 / win_probability, 4))
+
+    def get_win_loss_analysis(self, gambler_id, session_id=None, limit=500):
+        return self.win_loss_calculator.analyze_history(gambler_id, session_id=session_id, limit=limit).to_dict()
 
     def _persist_bet(self, bet):
         conn = get_connection()
