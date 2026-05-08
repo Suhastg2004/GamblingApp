@@ -29,4 +29,4 @@ Contributions are welcome. Open an issue first to discuss major changes.
 
 ## License
 
-No license is currently specified for this repository.
+No license is currently specified for this repository; all rights are reserved by default.
