@@ -29,4 +29,4 @@ Contributions are welcome. Open an issue first to discuss major changes.
 
 ## License
 
-Add a license file (for example, `LICENSE`) and update this section with the selected license.
+No license is currently specified for this repository.
